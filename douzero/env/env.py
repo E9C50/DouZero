@@ -18,10 +18,12 @@ for i in range(3, 15):
 deck.extend([17 for _ in range(4)])
 deck.extend([20, 30])
 
+
 class Env:
     """
     Doudizhu multi-agent wrapper
     """
+
     def __init__(self, objective):
         """
         Objective is wp/adp/logadp. It indicates whether considers
@@ -158,6 +160,7 @@ class Env:
         """
         return self._env.game_over
 
+
 class DummyAgent(object):
     """
     Dummy agent is designed to easily interact with the
@@ -167,6 +170,7 @@ class DummyAgent(object):
     isolate environment and agents towards a gym like
     interface.
     """
+
     def __init__(self, position):
         self.position = position
         self.action = None
@@ -184,6 +188,7 @@ class DummyAgent(object):
         the dummy agent what to do.
         """
         self.action = action
+
 
 def get_obs(infoset):
     """
@@ -218,6 +223,7 @@ def get_obs(infoset):
     else:
         raise ValueError('')
 
+
 def _get_one_hot_array(num_left_cards, max_num_cards):
     """
     A utility function to obtain one-hot endoding
@@ -226,6 +232,7 @@ def _get_one_hot_array(num_left_cards, max_num_cards):
     one_hot[num_left_cards - 1] = 1
 
     return one_hot
+
 
 def _cards2array(list_cards):
     """
@@ -249,6 +256,7 @@ def _cards2array(list_cards):
             jokers[1] = 1
     return np.concatenate((matrix.flatten('F'), jokers))
 
+
 def _action_seq_list2array(action_seq_list):
     """
     A utility function to encode the historical moves.
@@ -265,6 +273,7 @@ def _action_seq_list2array(action_seq_list):
     action_seq_array = action_seq_array.reshape(5, 162)
     return action_seq_array
 
+
 def _process_action_seq(sequence, length=15):
     """
     A utility function encoding historical moves. We
@@ -278,6 +287,7 @@ def _process_action_seq(sequence, length=15):
         sequence = empty_sequence
     return sequence
 
+
 def _get_one_hot_bomb(bomb_num):
     """
     A utility function to encode the number of bombs
@@ -286,6 +296,7 @@ def _get_one_hot_bomb(bomb_num):
     one_hot = np.zeros(15)
     one_hot[bomb_num] = 1
     return one_hot
+
 
 def _get_obs_landlord(infoset):
     """
@@ -362,14 +373,15 @@ def _get_obs_landlord(infoset):
         z[np.newaxis, :, :],
         num_legal_actions, axis=0)
     obs = {
-            'position': 'landlord',
-            'x_batch': x_batch.astype(np.float32),
-            'z_batch': z_batch.astype(np.float32),
-            'legal_actions': infoset.legal_actions,
-            'x_no_action': x_no_action.astype(np.int8),
-            'z': z.astype(np.int8),
-          }
+        'position': 'landlord',
+        'x_batch': x_batch.astype(np.float32),
+        'z_batch': z_batch.astype(np.float32),
+        'legal_actions': infoset.legal_actions,
+        'x_no_action': x_no_action.astype(np.int8),
+        'z': z.astype(np.int8),
+    }
     return obs
+
 
 def _get_obs_landlord_up(infoset):
     """
@@ -460,14 +472,15 @@ def _get_obs_landlord_up(infoset):
         z[np.newaxis, :, :],
         num_legal_actions, axis=0)
     obs = {
-            'position': 'landlord_up',
-            'x_batch': x_batch.astype(np.float32),
-            'z_batch': z_batch.astype(np.float32),
-            'legal_actions': infoset.legal_actions,
-            'x_no_action': x_no_action.astype(np.int8),
-            'z': z.astype(np.int8),
-          }
+        'position': 'landlord_up',
+        'x_batch': x_batch.astype(np.float32),
+        'z_batch': z_batch.astype(np.float32),
+        'legal_actions': infoset.legal_actions,
+        'x_no_action': x_no_action.astype(np.int8),
+        'z': z.astype(np.int8),
+    }
     return obs
+
 
 def _get_obs_landlord_down(infoset):
     """
@@ -564,11 +577,11 @@ def _get_obs_landlord_down(infoset):
         z[np.newaxis, :, :],
         num_legal_actions, axis=0)
     obs = {
-            'position': 'landlord_down',
-            'x_batch': x_batch.astype(np.float32),
-            'z_batch': z_batch.astype(np.float32),
-            'legal_actions': infoset.legal_actions,
-            'x_no_action': x_no_action.astype(np.int8),
-            'z': z.astype(np.int8),
-          }
+        'position': 'landlord_down',
+        'x_batch': x_batch.astype(np.float32),
+        'z_batch': z_batch.astype(np.float32),
+        'legal_actions': infoset.legal_actions,
+        'x_no_action': x_no_action.astype(np.int8),
+        'z': z.astype(np.int8),
+    }
     return obs

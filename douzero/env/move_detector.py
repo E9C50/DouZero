@@ -1,14 +1,16 @@
 from douzero.env.utils import *
 import collections
 
+
 # check if move is a continuous sequence
 def is_continuous_seq(move):
     i = 0
     while i < len(move) - 1:
-        if move[i+1] - move[i] != 1:
+        if move[i + 1] - move[i] != 1:
             return False
         i += 1
     return True
+
 
 # return the type of the move
 def get_move_type(move):
@@ -37,7 +39,7 @@ def get_move_type(move):
 
     if move_size == 4:
         if len(move_dict) == 1:
-            return {'type': TYPE_4_BOMB,  'rank': move[0]}
+            return {'type': TYPE_4_BOMB, 'rank': move[0]}
         elif len(move_dict) == 2:
             if move[0] == move[1] == move[2] or move[1] == move[2] == move[3]:
                 return {'type': TYPE_6_3_1, 'rank': move[1]}
@@ -65,7 +67,7 @@ def get_move_type(move):
             return {'type': TYPE_13_4_2, 'rank': move[2]}
 
     if move_size == 8 and (((len(move_dict) == 3 or len(move_dict) == 2) and
-            (count_dict.get(4) == 1 and count_dict.get(2) == 2)) or count_dict.get(4) == 2):
+                            (count_dict.get(4) == 1 and count_dict.get(2) == 2)) or count_dict.get(4) == 2):
         return {'type': TYPE_14_4_22, 'rank': max([c for c, n in move_dict.items() if n == 4])}
 
     mdkeys = sorted(move_dict.keys())
@@ -93,7 +95,7 @@ def get_move_type(move):
 
         serial_3.sort()
         if is_continuous_seq(serial_3):
-            if len(serial_3) == len(single)+len(pair)*2:
+            if len(serial_3) == len(single) + len(pair) * 2:
                 return {'type': TYPE_11_SERIAL_3_1, 'rank': serial_3[0], 'len': len(serial_3)}
             if len(serial_3) == len(pair) and len(move_dict) == len(serial_3) * 2:
                 return {'type': TYPE_12_SERIAL_3_2, 'rank': serial_3[0], 'len': len(serial_3)}

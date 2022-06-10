@@ -2,10 +2,12 @@ from douzero.env.utils import MIN_SINGLE_CARDS, MIN_PAIRS, MIN_TRIPLES, select
 import collections
 import itertools
 
+
 class MovesGener(object):
     """
     This is for generating the possible combinations
     """
+
     def __init__(self, cards_list):
         self.cards_list = cards_list
         self.cards_dict = collections.defaultdict(int)
@@ -109,7 +111,7 @@ class MovesGener(object):
         for t in self.single_card_moves:
             for i in self.triple_cards_moves:
                 if t[0] != i[0]:
-                    result.append(t+i)
+                    result.append(t + i)
         return result
 
     def gen_type_7_3_2(self):
@@ -117,7 +119,7 @@ class MovesGener(object):
         for t in self.pair_moves:
             for i in self.triple_cards_moves:
                 if t[0] != i[0]:
-                    result.append(t+i)
+                    result.append(t + i)
         return result
 
     def gen_type_8_serial_single(self, repeat_num=0):
@@ -182,7 +184,7 @@ class MovesGener(object):
             cards_list = [k for k in self.cards_list if k != fc]
             subcards = select(cards_list, 2)
             for i in subcards:
-                result.append([fc]*4 + i)
+                result.append([fc] * 4 + i)
         return list(k for k, _ in itertools.groupby(result))
 
     def gen_type_14_4_22(self):
@@ -193,7 +195,7 @@ class MovesGener(object):
 
         result = list()
         for fc in four_cards:
-            cards_list = [k for k, v in self.cards_dict.items() if k != fc and v>=2]
+            cards_list = [k for k, v in self.cards_dict.items() if k != fc and v >= 2]
             subcards = select(cards_list, 2)
             for i in subcards:
                 result.append([fc] * 4 + [i[0], i[0], i[1], i[1]])

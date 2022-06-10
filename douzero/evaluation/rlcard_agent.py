@@ -13,6 +13,7 @@ INDEX = {'3': 0, '4': 1, '5': 2, '6': 3, '7': 4,
          '8': 5, '9': 6, 'T': 7, 'J': 8, 'Q': 9,
          'K': 10, 'A': 11, '2': 12, 'B': 13, 'R': 14}
 
+
 class RLCardAgent(object):
 
     def __init__(self, position):
@@ -56,7 +57,7 @@ class RLCardAgent(object):
                             action = [char for char in chosen_action]
                             for i, c in enumerate(action):
                                 action[i] = RealCard2EnvCard[c]
-                            #print('lead action:', action)
+                            # print('lead action:', action)
             # the rule of following cards
             else:
                 the_type = CARD_TYPE[0][last_move][0][0]
@@ -75,7 +76,7 @@ class RLCardAgent(object):
                     action = [char for char in chosen_action]
                     for i, c in enumerate(action):
                         action[i] = RealCard2EnvCard[c]
-                    #print('action:', action)
+                    # print('action:', action)
                 elif last_pid != 'landlord' and self.position != 'landlord':
                     action = []
 
@@ -83,18 +84,20 @@ class RLCardAgent(object):
                 action = random.choice(infoset.legal_actions)
         except:
             action = random.choice(infoset.legal_actions)
-            #import traceback
-            #traceback.print_exc()
+            # import traceback
+            # traceback.print_exc()
 
         assert action in infoset.legal_actions
 
         return action
-        
+
+
 def card_str2list(hand):
     hand_list = [0 for _ in range(15)]
     for card in hand:
         hand_list[INDEX[card]] += 1
     return hand_list
+
 
 def list2card_str(hand_list):
     card_str = ''
@@ -102,6 +105,7 @@ def list2card_str(hand_list):
     for index, count in enumerate(hand_list):
         card_str += cards[index] * count
     return card_str
+
 
 def pick_chain(hand_list, count):
     chains = []
@@ -118,13 +122,14 @@ def pick_chain(hand_list, count):
                 if min_count != 0:
                     str_chain = ''
                     for num in range(len(chain)):
-                        str_chain += str_card[start+num]
-                        hand_list[start+num] = int(hand_list[start+num]) - int(min(chain))
+                        str_chain += str_card[start + num]
+                        hand_list[start + num] = int(hand_list[start + num]) - int(min(chain))
                     for _ in range(min_count):
                         chains.append(str_chain)
             add += len(chain)
     hand_list = [int(card) for card in hand_list]
     return (chains, hand_list)
+
 
 def combine_cards(hand):
     '''Get optimal combinations of cards in hand
@@ -138,16 +143,16 @@ def combine_cards(hand):
     # 2. pick bomb
     hand_cp = hand
     for index in range(len(hand_cp) - 3):
-        if hand_cp[index] == hand_cp[index+3]:
-            bomb = hand_cp[index: index+4]
+        if hand_cp[index] == hand_cp[index + 3]:
+            bomb = hand_cp[index: index + 4]
             comb['bomb'].append(bomb)
             hand = hand.replace(bomb, '')
     # 3. pick trio and trio_chain
     hand_cp = hand
     for index in range(len(hand_cp) - 2):
-        if hand_cp[index] == hand_cp[index+2]:
-            trio = hand_cp[index: index+3]
-            if len(comb['trio']) > 0 and INDEX[trio[-1]] < 12 and (INDEX[trio[-1]]-1) == INDEX[comb['trio'][-1][-1]]:
+        if hand_cp[index] == hand_cp[index + 2]:
+            trio = hand_cp[index: index + 3]
+            if len(comb['trio']) > 0 and INDEX[trio[-1]] < 12 and (INDEX[trio[-1]] - 1) == INDEX[comb['trio'][-1][-1]]:
                 comb['trio'][-1] += trio
             else:
                 comb['trio'].append(trio)
@@ -172,8 +177,8 @@ def combine_cards(hand):
     # 6. pick pair and solo
     index = 0
     while index < len(hand) - 1:
-        if hand[index] == hand[index+1]:
-            comb['pair'].append(hand[index] + hand[index+1])
+        if hand[index] == hand[index + 1]:
+            comb['pair'].append(hand[index] + hand[index + 1])
             index += 2
         else:
             comb['solo'].append(hand[index])

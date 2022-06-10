@@ -1,7 +1,10 @@
+import datetime
 import multiprocessing as mp
 import pickle
+import time
 
 from douzero.env.game import GameEnv
+
 
 def load_card_play_models(card_play_model_path_dict):
     players = {}
@@ -18,8 +21,8 @@ def load_card_play_models(card_play_model_path_dict):
             players[position] = DeepAgent(position, card_play_model_path_dict[position])
     return players
 
-def mp_simulate(card_play_data_list, card_play_model_path_dict, q):
 
+def mp_simulate(card_play_data_list, card_play_model_path_dict, q):
     players = load_card_play_models(card_play_model_path_dict)
 
     env = GameEnv(players)
@@ -33,7 +36,8 @@ def mp_simulate(card_play_data_list, card_play_model_path_dict, q):
            env.num_wins['farmer'],
            env.num_scores['landlord'],
            env.num_scores['farmer']
-         ))
+           ))
+
 
 def data_allocation_per_worker(card_play_data_list, num_workers):
     card_play_data_list_each_worker = [[] for k in range(num_workers)]
@@ -42,13 +46,13 @@ def data_allocation_per_worker(card_play_data_list, num_workers):
 
     return card_play_data_list_each_worker
 
-def evaluate(landlord, landlord_up, landlord_down, eval_data, num_workers):
 
+def evaluate(landlord, landlord_up, landlord_down, eval_data, num_workers):
+    start_time = time.time()
     with open(eval_data, 'rb') as f:
         card_play_data_list = pickle.load(f)
 
-    card_play_data_list_each_worker = data_allocation_per_worker(
-        card_play_data_list, num_workers)
+    card_play_data_list_each_worker = data_allocation_per_worker(card_play_data_list, num_workers)
     del card_play_data_list
 
     card_play_model_path_dict = {
@@ -64,25 +68,33 @@ def evaluate(landlord, landlord_up, landlord_down, eval_data, num_workers):
     ctx = mp.get_context('spawn')
     q = ctx.SimpleQueue()
     processes = []
+
+    print("[{}]数据准备完成，准备启动所有模拟进程".format(datetime.datetime.now()))
+
     for card_paly_data in card_play_data_list_each_worker:
         p = ctx.Process(
-                target=mp_simulate,
-                args=(card_paly_data, card_play_model_path_dict, q))
+            target=mp_simulate,
+            args=(card_paly_data, card_play_model_path_dict, q))
         p.start()
         processes.append(p)
+
+    print("[{}]所有进程已启动！进程数量：{}".format(datetime.datetime.now(), len(processes)))
 
     for p in processes:
         p.join()
 
+    print("[{}]所有进程已结束！".format(datetime.datetime.now()))
     for i in range(num_workers):
         result = q.get()
         num_landlord_wins += result[0]
         num_farmer_wins += result[1]
         num_landlord_scores += result[2]
         num_farmer_scores += result[3]
+        print('WP results: landlord : Farmers - {} : {}'.format(result[0], result[1]))
+        print('ADP results: landlord : Farmers - {} : {}'.format(result[2], result[3]))
+        print("")
 
     num_total_wins = num_landlord_wins + num_farmer_wins
-    print('WP results:')
-    print('landlord : Farmers - {} : {}'.format(num_landlord_wins / num_total_wins, num_farmer_wins / num_total_wins))
-    print('ADP results:')
-    print('landlord : Farmers - {} : {}'.format(num_landlord_scores / num_total_wins, 2 * num_farmer_scores / num_total_wins)) 
+    print("")
+    print('WP total results: landlord : Farmers - {} : {}'.format(num_landlord_wins / num_total_wins, num_farmer_wins / num_total_wins))
+    print('ADP total results: landlord : Farmers - {} : {}'.format(num_landlord_scores / num_total_wins, 2 * num_farmer_scores / num_total_wins))

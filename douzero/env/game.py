@@ -1,88 +1,71 @@
 from copy import deepcopy
 from . import move_detector as md, move_selector as ms
 from .move_generator import MovesGener
+from prettytable import PrettyTable
 
-EnvCard2RealCard = {3: '3', 4: '4', 5: '5', 6: '6', 7: '7',
-                    8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q',
-                    13: 'K', 14: 'A', 17: '2', 20: 'X', 30: 'D'}
+EnvCard2RealCard = {3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 17: '2', 20: 'X', 30: 'D'}
+RealCard2EnvCard = {'3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14, '2': 17, 'X': 20, 'D': 30}
 
-RealCard2EnvCard = {'3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
-                    '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12,
-                    'K': 13, 'A': 14, '2': 17, 'X': 20, 'D': 30}
+bombs = [
+    [3, 3, 3, 3], [4, 4, 4, 4], [5, 5, 5, 5], [6, 6, 6, 6], [7, 7, 7, 7], [8, 8, 8, 8], [9, 9, 9, 9], [10, 10, 10, 10],
+    [11, 11, 11, 11], [12, 12, 12, 12], [13, 13, 13, 13], [14, 14, 14, 14], [17, 17, 17, 17], [20, 30]
+]
 
-bombs = [[3, 3, 3, 3], [4, 4, 4, 4], [5, 5, 5, 5], [6, 6, 6, 6],
-         [7, 7, 7, 7], [8, 8, 8, 8], [9, 9, 9, 9], [10, 10, 10, 10],
-         [11, 11, 11, 11], [12, 12, 12, 12], [13, 13, 13, 13], [14, 14, 14, 14],
-         [17, 17, 17, 17], [20, 30]]
 
 class GameEnv(object):
 
     def __init__(self, players):
 
-        self.card_play_action_seq = []
+        self.debug_record = PrettyTable(['角色', '出牌', '手牌'])
+
+        self.card_play_action_seq = []  # 历史出牌序列
 
         self.three_landlord_cards = None
-        self.game_over = False
+        self.game_over = False  # 游戏是否结束
 
-        self.acting_player_position = None
+        self.acting_player_position = None  # 当前出牌角色
         self.player_utility_dict = None
 
         self.players = players
 
-        self.last_move_dict = {'landlord': [],
-                               'landlord_up': [],
-                               'landlord_down': []}
+        self.last_move_dict = {'landlord': [], 'landlord_up': [], 'landlord_down': []}  # 所有玩家上一次出的牌
 
-        self.played_cards = {'landlord': [],
-                             'landlord_up': [],
-                             'landlord_down': []}
+        self.played_cards = {'landlord': [], 'landlord_up': [], 'landlord_down': []}  # 所有玩家出过的牌
 
         self.last_move = []
         self.last_two_moves = []
 
-        self.num_wins = {'landlord': 0,
-                         'farmer': 0}
+        self.num_wins = {'landlord': 0, 'farmer': 0}
+        self.num_scores = {'landlord': 0, 'farmer': 0}
 
-        self.num_scores = {'landlord': 0,
-                           'farmer': 0}
+        self.info_sets = {'landlord': InfoSet('landlord'), 'landlord_up': InfoSet('landlord_up'), 'landlord_down': InfoSet('landlord_down')}
 
-        self.info_sets = {'landlord': InfoSet('landlord'),
-                         'landlord_up': InfoSet('landlord_up'),
-                         'landlord_down': InfoSet('landlord_down')}
-
-        self.bomb_num = 0
-        self.last_pid = 'landlord'
+        self.bomb_num = 0  # 炸弹数量
+        self.last_pid = 'landlord'  # 上一个出牌的角色
 
     def card_play_init(self, card_play_data):
-        self.info_sets['landlord'].player_hand_cards = \
-            card_play_data['landlord']
-        self.info_sets['landlord_up'].player_hand_cards = \
-            card_play_data['landlord_up']
-        self.info_sets['landlord_down'].player_hand_cards = \
-            card_play_data['landlord_down']
+        self.info_sets['landlord'].player_hand_cards = card_play_data['landlord']
+        self.info_sets['landlord_up'].player_hand_cards = card_play_data['landlord_up']
+        self.info_sets['landlord_down'].player_hand_cards = card_play_data['landlord_down']
         self.three_landlord_cards = card_play_data['three_landlord_cards']
         self.get_acting_player_position()
         self.game_infoset = self.get_infoset()
 
     def game_done(self):
-        if len(self.info_sets['landlord'].player_hand_cards) == 0 or \
-                len(self.info_sets['landlord_up'].player_hand_cards) == 0 or \
-                len(self.info_sets['landlord_down'].player_hand_cards) == 0:
-            # if one of the three players discards his hand,
-            # then game is over.
+        landlord_empty_hand = len(self.info_sets['landlord'].player_hand_cards) == 0
+        landlord_up_empty_hand = len(self.info_sets['landlord_up'].player_hand_cards) == 0
+        landlord_down_empty_hand = len(self.info_sets['landlord_down'].player_hand_cards) == 0
+
+        if landlord_empty_hand or landlord_up_empty_hand or landlord_down_empty_hand:
             self.compute_player_utility()
             self.update_num_wins_scores()
-
             self.game_over = True
 
     def compute_player_utility(self):
-
         if len(self.info_sets['landlord'].player_hand_cards) == 0:
-            self.player_utility_dict = {'landlord': 2,
-                                        'farmer': -1}
+            self.player_utility_dict = {'landlord': 2, 'farmer': -1}
         else:
-            self.player_utility_dict = {'landlord': -2,
-                                        'farmer': 1}
+            self.player_utility_dict = {'landlord': -2, 'farmer': 1}
 
     def update_num_wins_scores(self):
         for pos, utility in self.player_utility_dict.items():
@@ -100,9 +83,18 @@ class GameEnv(object):
     def get_bomb_num(self):
         return self.bomb_num
 
+    def get_real_cards_list(self, cards):
+        real_card = []
+        for item in cards:
+            real_card.append(EnvCard2RealCard[item])
+        return real_card
+
     def step(self):
-        action = self.players[self.acting_player_position].act(
-            self.game_infoset)
+        action = self.players[self.acting_player_position].act(self.game_infoset)
+        real_actions = self.get_real_cards_list(action)
+        real_hand_cards = self.get_real_cards_list(self.info_sets[self.acting_player_position].player_hand_cards)
+        self.debug_record.add_row([self.acting_player_position, real_actions, real_hand_cards])
+
         assert action in self.game_infoset.legal_actions
 
         if len(action) > 0:
@@ -111,17 +103,14 @@ class GameEnv(object):
         if action in bombs:
             self.bomb_num += 1
 
-        self.last_move_dict[
-            self.acting_player_position] = action.copy()
+        self.last_move_dict[self.acting_player_position] = action.copy()
 
         self.card_play_action_seq.append(action)
         self.update_acting_player_hand_cards(action)
 
         self.played_cards[self.acting_player_position] += action
 
-        if self.acting_player_position == 'landlord' and \
-                len(action) > 0 and \
-                len(self.three_landlord_cards) > 0:
+        if self.acting_player_position == 'landlord' and len(action) > 0 and len(self.three_landlord_cards) > 0:
             for card in action:
                 if len(self.three_landlord_cards) > 0:
                     if card in self.three_landlord_cards:
@@ -283,56 +272,41 @@ class GameEnv(object):
         self.last_two_moves = []
 
         self.info_sets = {'landlord': InfoSet('landlord'),
-                         'landlord_up': InfoSet('landlord_up'),
-                         'landlord_down': InfoSet('landlord_down')}
+                          'landlord_up': InfoSet('landlord_up'),
+                          'landlord_down': InfoSet('landlord_down')}
 
         self.bomb_num = 0
         self.last_pid = 'landlord'
 
     def get_infoset(self):
-        self.info_sets[
-            self.acting_player_position].last_pid = self.last_pid
+        self.info_sets[self.acting_player_position].last_pid = self.last_pid
 
-        self.info_sets[
-            self.acting_player_position].legal_actions = \
-            self.get_legal_card_play_actions()
+        self.info_sets[self.acting_player_position].legal_actions = self.get_legal_card_play_actions()
 
-        self.info_sets[
-            self.acting_player_position].bomb_num = self.bomb_num
+        self.info_sets[self.acting_player_position].bomb_num = self.bomb_num
 
-        self.info_sets[
-            self.acting_player_position].last_move = self.get_last_move()
+        self.info_sets[self.acting_player_position].last_move = self.get_last_move()
 
-        self.info_sets[
-            self.acting_player_position].last_two_moves = self.get_last_two_moves()
+        self.info_sets[self.acting_player_position].last_two_moves = self.get_last_two_moves()
 
-        self.info_sets[
-            self.acting_player_position].last_move_dict = self.last_move_dict
+        self.info_sets[self.acting_player_position].last_move_dict = self.last_move_dict
 
         self.info_sets[self.acting_player_position].num_cards_left_dict = \
-            {pos: len(self.info_sets[pos].player_hand_cards)
-             for pos in ['landlord', 'landlord_up', 'landlord_down']}
+            {pos: len(self.info_sets[pos].player_hand_cards) for pos in ['landlord', 'landlord_up', 'landlord_down']}
 
         self.info_sets[self.acting_player_position].other_hand_cards = []
         for pos in ['landlord', 'landlord_up', 'landlord_down']:
             if pos != self.acting_player_position:
-                self.info_sets[
-                    self.acting_player_position].other_hand_cards += \
-                    self.info_sets[pos].player_hand_cards
+                self.info_sets[self.acting_player_position].other_hand_cards += self.info_sets[pos].player_hand_cards
 
-        self.info_sets[self.acting_player_position].played_cards = \
-            self.played_cards
-        self.info_sets[self.acting_player_position].three_landlord_cards = \
-            self.three_landlord_cards
-        self.info_sets[self.acting_player_position].card_play_action_seq = \
-            self.card_play_action_seq
+        self.info_sets[self.acting_player_position].played_cards = self.played_cards
+        self.info_sets[self.acting_player_position].three_landlord_cards = self.three_landlord_cards
+        self.info_sets[self.acting_player_position].card_play_action_seq = self.card_play_action_seq
 
-        self.info_sets[
-            self.acting_player_position].all_handcards = \
-            {pos: self.info_sets[pos].player_hand_cards
-             for pos in ['landlord', 'landlord_up', 'landlord_down']}
+        self.info_sets[self.acting_player_position].all_handcards = {pos: self.info_sets[pos].player_hand_cards for pos in ['landlord', 'landlord_up', 'landlord_down']}
 
         return deepcopy(self.info_sets[self.acting_player_position])
+
 
 class InfoSet(object):
     """
@@ -341,6 +315,7 @@ class InfoSet(object):
     such as the hand cards of the three players, the
     historical moves, etc.
     """
+
     def __init__(self, player_position):
         # The player position, i.e., landlord, landlord_down, or landlord_up
         self.player_position = player_position

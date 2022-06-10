@@ -4,7 +4,8 @@ to use. When a game is finished, instead of mannualy reseting
 the environment, we do it automatically.
 """
 import numpy as np
-import torch 
+import torch
+
 
 def _format_observation(obs, device):
     """
@@ -25,6 +26,7 @@ def _format_observation(obs, device):
            }
     return position, obs, x_no_action, z
 
+
 class Environment:
     def __init__(self, env, device):
         """ Initialzie this environment wrapper
@@ -44,13 +46,13 @@ class Environment:
             episode_return=self.episode_return,
             obs_x_no_action=x_no_action,
             obs_z=z,
-            )
-        
+        )
+
     def step(self, action):
         obs, reward, done, _ = self.env.step(action)
 
         self.episode_return += reward
-        episode_return = self.episode_return 
+        episode_return = self.episode_return
 
         if done:
             obs = self.env.reset()
@@ -59,13 +61,13 @@ class Environment:
         position, obs, x_no_action, z = _format_observation(obs, self.device)
         reward = torch.tensor(reward).view(1, 1)
         done = torch.tensor(done).view(1, 1)
-        
+
         return position, obs, dict(
             done=done,
             episode_return=episode_return,
             obs_x_no_action=x_no_action,
             obs_z=z,
-            )
+        )
 
     def close(self):
         self.env.close()

@@ -1,4 +1,4 @@
-import os 
+import os
 import typing
 import logging
 import traceback
@@ -6,7 +6,7 @@ import numpy as np
 from collections import Counter
 import time
 
-import torch 
+import torch
 from torch import multiprocessing as mp
 
 from .env_utils import Environment
@@ -36,8 +36,10 @@ log.setLevel(logging.INFO)
 # and learner processes. They are shared tensors in GPU
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
+
 def create_env(flags):
     return Env(flags.objective)
+
 
 def get_batch(free_queue,
               full_queue,
@@ -59,6 +61,7 @@ def get_batch(free_queue,
         free_queue.put(m)
     return batch
 
+
 def create_optimizers(flags, learner_model):
     """
     Create three optimizers for the three positions
@@ -74,6 +77,7 @@ def create_optimizers(flags, learner_model):
             alpha=flags.alpha)
         optimizers[position] = optimizer
     return optimizers
+
 
 def create_buffers(flags, device_iterator):
     """
@@ -100,12 +104,13 @@ def create_buffers(flags, device_iterator):
             for _ in range(flags.num_buffers):
                 for key in _buffers:
                     if not device == "cpu":
-                        _buffer = torch.empty(**specs[key]).to(torch.device('cuda:'+str(device))).share_memory_()
+                        _buffer = torch.empty(**specs[key]).to(torch.device('cuda:' + str(device))).share_memory_()
                     else:
                         _buffer = torch.empty(**specs[key]).to(torch.device('cpu')).share_memory_()
                     _buffers[key].append(_buffer)
             buffers[device][position] = _buffers
     return buffers
+
 
 def act(i, device, free_queue, full_queue, model, buffers, flags):
     """
@@ -146,17 +151,17 @@ def act(i, device, free_queue, full_queue, model, buffers, flags):
                     for p in positions:
                         diff = size[p] - len(target_buf[p])
                         if diff > 0:
-                            done_buf[p].extend([False for _ in range(diff-1)])
+                            done_buf[p].extend([False for _ in range(diff - 1)])
                             done_buf[p].append(True)
 
                             episode_return = env_output['episode_return'] if p == 'landlord' else -env_output['episode_return']
-                            episode_return_buf[p].extend([0.0 for _ in range(diff-1)])
+                            episode_return_buf[p].extend([0.0 for _ in range(diff - 1)])
                             episode_return_buf[p].append(episode_return)
                             target_buf[p].extend([episode_return for _ in range(diff)])
                     break
 
             for p in positions:
-                while size[p] > T: 
+                while size[p] > T:
                     index = free_queue[p].get()
                     if index is None:
                         break
@@ -177,12 +182,13 @@ def act(i, device, free_queue, full_queue, model, buffers, flags):
                     size[p] -= T
 
     except KeyboardInterrupt:
-        pass  
+        pass
     except Exception as e:
         log.error('Exception in worker process %i', i)
         traceback.print_exc()
         print()
         raise e
+
 
 def _cards2tensor(list_cards):
     """

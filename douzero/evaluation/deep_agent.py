@@ -3,6 +3,7 @@ import numpy as np
 
 from douzero.env.env import get_obs
 
+
 def _load_model(position, model_path):
     from douzero.dmc.models import model_dict
     model = model_dict[position]()
@@ -19,6 +20,7 @@ def _load_model(position, model_path):
     model.eval()
     return model
 
+
 class DeepAgent:
 
     def __init__(self, position, model_path):
@@ -28,7 +30,7 @@ class DeepAgent:
         if len(infoset.legal_actions) == 1:
             return infoset.legal_actions[0]
 
-        obs = get_obs(infoset) 
+        obs = get_obs(infoset)
 
         z_batch = torch.from_numpy(obs['z_batch']).float()
         x_batch = torch.from_numpy(obs['x_batch']).float()

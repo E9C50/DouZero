@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from torch import nn
 
+
 class LandlordLstmModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -21,8 +22,8 @@ class LandlordLstmModel(nn.Module):
 
     def forward(self, z, x, return_value=False, flags=None):
         lstm_out, (h_n, _) = self.lstm(z)
-        lstm_out = lstm_out[:,-1,:]
-        x = torch.cat([lstm_out,x], dim=-1)
+        lstm_out = lstm_out[:, -1, :]
+        x = torch.cat([lstm_out, x], dim=-1)
         x = self.dense1(x)
         x = torch.relu(x)
         x = self.dense2(x)
@@ -40,8 +41,9 @@ class LandlordLstmModel(nn.Module):
             if flags is not None and flags.exp_epsilon > 0 and np.random.rand() < flags.exp_epsilon:
                 action = torch.randint(x.shape[0], (1,))[0]
             else:
-                action = torch.argmax(x,dim=0)[0]
+                action = torch.argmax(x, dim=0)[0]
             return dict(action=action)
+
 
 class FarmerLstmModel(nn.Module):
     def __init__(self):
@@ -56,8 +58,8 @@ class FarmerLstmModel(nn.Module):
 
     def forward(self, z, x, return_value=False, flags=None):
         lstm_out, (h_n, _) = self.lstm(z)
-        lstm_out = lstm_out[:,-1,:]
-        x = torch.cat([lstm_out,x], dim=-1)
+        lstm_out = lstm_out[:, -1, :]
+        x = torch.cat([lstm_out, x], dim=-1)
         x = self.dense1(x)
         x = torch.relu(x)
         x = self.dense2(x)
@@ -75,8 +77,9 @@ class FarmerLstmModel(nn.Module):
             if flags is not None and flags.exp_epsilon > 0 and np.random.rand() < flags.exp_epsilon:
                 action = torch.randint(x.shape[0], (1,))[0]
             else:
-                action = torch.argmax(x,dim=0)[0]
+                action = torch.argmax(x, dim=0)[0]
             return dict(action=action)
+
 
 # Model dict is only used in evaluation but not training
 model_dict = {}
@@ -84,11 +87,13 @@ model_dict['landlord'] = LandlordLstmModel
 model_dict['landlord_up'] = FarmerLstmModel
 model_dict['landlord_down'] = FarmerLstmModel
 
+
 class Model:
     """
     The wrapper for the three models. We also wrap several
     interfaces such as share_memory, eval, etc.
     """
+
     def __init__(self, device=0):
         self.models = {}
         if not device == "cpu":
