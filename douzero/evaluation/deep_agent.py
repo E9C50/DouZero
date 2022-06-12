@@ -1,7 +1,13 @@
-import torch
 import numpy as np
+import torch
 
+import my_cards_scan as mcs
 from douzero.env.env import get_obs
+
+EnvCard2RealCard = {
+    3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: 'T',
+    11: 'J', 12: 'Q', 13: 'K', 14: 'A', 17: '2', 20: 'X', 30: 'D'
+}
 
 
 def _load_model(position, model_path):
@@ -25,10 +31,11 @@ class DeepAgent:
 
     def __init__(self, position, model_path):
         self.model = _load_model(position, model_path)
+        self.position = position
 
     def act(self, infoset):
-        if len(infoset.legal_actions) == 1:
-            return infoset.legal_actions[0]
+        # if len(infoset.legal_actions) == 1:
+        #     return infoset.legal_actions[0]
 
         obs = get_obs(infoset)
 
@@ -41,5 +48,15 @@ class DeepAgent:
 
         best_action_index = np.argmax(y_pred, axis=0)[0]
         best_action = infoset.legal_actions[best_action_index]
+
+        confidence = y_pred[best_action_index]
+
+        real_cards = [EnvCard2RealCard[c] for c in list(best_action)]
+        hand_cards = [EnvCard2RealCard[c] for c in list(infoset.player_hand_cards)]
+        print("当前胜率：{}% 请玩家出牌：{} 剩余手牌：{}".format(abs(round(confidence[0] * 100)), real_cards, hand_cards))
+        print()
+        while (not mcs.check_pass(self.position, self.position)) and (not mcs.check_white(self.position, self.position)):
+            # print("等待{}出牌".format(self.position))
+            pass
 
         return best_action

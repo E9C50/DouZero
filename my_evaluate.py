@@ -22,8 +22,8 @@ def load_card_play_models(card_play_model_path_dict):
 if __name__ == '__main__':
     card_play_model_path_dict = {
         'landlord': 'baselines/douzero_ADP/landlord.ckpt',
-        'landlord_up': 'baselines/sl/landlord_up.ckpt',
-        'landlord_down': 'baselines/sl/landlord_down.ckpt'
+        'landlord_up': 'baselines/douzero_WP/landlord_up.ckpt',
+        'landlord_down': 'baselines/douzero_WP/landlord_down.ckpt'
     }
     players = load_card_play_models(card_play_model_path_dict)
 

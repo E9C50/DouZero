@@ -1,10 +1,17 @@
 from copy import deepcopy
+
+from prettytable import PrettyTable
+
 from . import move_detector as md, move_selector as ms
 from .move_generator import MovesGener
-from prettytable import PrettyTable
 
 EnvCard2RealCard = {3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 17: '2', 20: 'X', 30: 'D'}
 RealCard2EnvCard = {'3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14, '2': 17, 'X': 20, 'D': 30}
+
+AllEnvCard = [
+    3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9, 10, 10,
+    10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 17, 17, 17, 17, 20, 30
+]
 
 bombs = [
     [3, 3, 3, 3], [4, 4, 4, 4], [5, 5, 5, 5], [6, 6, 6, 6], [7, 7, 7, 7], [8, 8, 8, 8], [9, 9, 9, 9], [10, 10, 10, 10],
@@ -14,7 +21,9 @@ bombs = [
 
 class GameEnv(object):
 
-    def __init__(self, players):
+    def __init__(self, players, player_role):
+
+        self.player_role = player_role
 
         self.debug_record = PrettyTable(['角色', '出牌', '手牌'])
 
@@ -42,6 +51,7 @@ class GameEnv(object):
 
         self.bomb_num = 0  # 炸弹数量
         self.last_pid = 'landlord'  # 上一个出牌的角色
+
 
     def card_play_init(self, card_play_data):
         self.info_sets['landlord'].player_hand_cards = card_play_data['landlord']
@@ -91,11 +101,12 @@ class GameEnv(object):
 
     def step(self):
         action = self.players[self.acting_player_position].act(self.game_infoset)
+        print("{}出牌：{}".format(self.acting_player_position, [EnvCard2RealCard[c] for c in list(action)]))
         real_actions = self.get_real_cards_list(action)
         real_hand_cards = self.get_real_cards_list(self.info_sets[self.acting_player_position].player_hand_cards)
         self.debug_record.add_row([self.acting_player_position, real_actions, real_hand_cards])
 
-        assert action in self.game_infoset.legal_actions
+        # assert action in self.game_infoset.legal_actions
 
         if len(action) > 0:
             self.last_pid = self.acting_player_position
@@ -158,9 +169,13 @@ class GameEnv(object):
 
     def update_acting_player_hand_cards(self, action):
         if action != []:
-            for card in action:
-                self.info_sets[
-                    self.acting_player_position].player_hand_cards.remove(card)
+            # 更新玩家手牌，删除对应的牌
+            if self.acting_player_position == self.player_role:
+                for card in action:
+                    self.info_sets[self.acting_player_position].player_hand_cards.remove(card)
+            # 更新另外两个玩家手牌，删除相同数量的牌
+            else:
+                del self.info_sets[self.acting_player_position].player_hand_cards[0:len(action)]
             self.info_sets[self.acting_player_position].player_hand_cards.sort()
 
     def get_legal_card_play_actions(self):
@@ -280,30 +295,46 @@ class GameEnv(object):
 
     def get_infoset(self):
         self.info_sets[self.acting_player_position].last_pid = self.last_pid
-
         self.info_sets[self.acting_player_position].legal_actions = self.get_legal_card_play_actions()
-
         self.info_sets[self.acting_player_position].bomb_num = self.bomb_num
-
         self.info_sets[self.acting_player_position].last_move = self.get_last_move()
-
         self.info_sets[self.acting_player_position].last_two_moves = self.get_last_two_moves()
-
         self.info_sets[self.acting_player_position].last_move_dict = self.last_move_dict
-
         self.info_sets[self.acting_player_position].num_cards_left_dict = \
-            {pos: len(self.info_sets[pos].player_hand_cards) for pos in ['landlord', 'landlord_up', 'landlord_down']}
-
+            {pos: len(self.info_sets[pos].player_hand_cards)
+             for pos in ['landlord', 'landlord_up', 'landlord_down']}
         self.info_sets[self.acting_player_position].other_hand_cards = []
+
+        '''
+        调整计算其他人手牌的方法，整副牌减去玩家手牌与出过的牌
         for pos in ['landlord', 'landlord_up', 'landlord_down']:
             if pos != self.acting_player_position:
-                self.info_sets[self.acting_player_position].other_hand_cards += self.info_sets[pos].player_hand_cards
+                self.info_sets[
+                    self.acting_player_position].other_hand_cards += \
+                    self.info_sets[pos].player_hand_cards
+        '''
+        # 把出过的牌中三个子列表合成一个列表
+        played_cards_tmp = []
+        for i in list(self.played_cards.values()):
+            played_cards_tmp.extend(i)
+        # 出过的牌和玩家手上的牌
+        played_and_hand_cards = played_cards_tmp + self.info_sets[self.acting_player_position].player_hand_cards
+        # 整副牌减去出过的牌和玩家手上的牌，就是其他人的手牌
+        for i in set(AllEnvCard):
+            self.info_sets[
+                self.acting_player_position].other_hand_cards.extend([i] * (AllEnvCard.count(i) - played_and_hand_cards.count(i)))
 
-        self.info_sets[self.acting_player_position].played_cards = self.played_cards
-        self.info_sets[self.acting_player_position].three_landlord_cards = self.three_landlord_cards
-        self.info_sets[self.acting_player_position].card_play_action_seq = self.card_play_action_seq
+        self.info_sets[self.acting_player_position].played_cards = \
+            self.played_cards
+        self.info_sets[self.acting_player_position].three_landlord_cards = \
+            self.three_landlord_cards
+        self.info_sets[self.acting_player_position].card_play_action_seq = \
+            self.card_play_action_seq
 
-        self.info_sets[self.acting_player_position].all_handcards = {pos: self.info_sets[pos].player_hand_cards for pos in ['landlord', 'landlord_up', 'landlord_down']}
+        self.info_sets[
+            self.acting_player_position].all_handcards = \
+            {pos: self.info_sets[pos].player_hand_cards
+             for pos in ['landlord', 'landlord_up', 'landlord_down']}
 
         return deepcopy(self.info_sets[self.acting_player_position])
 
